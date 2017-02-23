@@ -228,6 +228,22 @@ namespace VSCodeDebug
                 var arguments = (string)args.arguments;
                 if (arguments == null) { arguments = ""; }
 
+                // validate argument 'env'
+                Dictionary<string, string> env = null;
+                var environmentVariables = args.env;
+                if (environmentVariables != null)
+                {
+                    env = new Dictionary<string, string>();
+                    foreach (var entry in environmentVariables)
+                    {
+                        env.Add((string)entry.Name, entry.Value.ToString());
+                    }
+                    if (env.Count == 0)
+                    {
+                        env = null;
+                    }
+                }
+
                 process = new Process();
                 process.StartInfo.CreateNoWindow = false;
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
@@ -244,6 +260,14 @@ namespace VSCodeDebug
                         toVSCode.SendMessage(new TerminatedEvent());
                     }
                 };
+
+                if (env != null)
+                {
+                    foreach (var entry in env)
+                    {
+                        System.Environment.SetEnvironmentVariable(entry.Key, entry.Value);
+                    }
+                }
 
                 var cmd = string.Format("{0} {1}\n", runtimeExecutable, arguments);
                 toVSCode.SendOutput("console", cmd);

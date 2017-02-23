@@ -102,6 +102,11 @@
                                 "description": "Command line arguments for executable",
                                 "default": "main.lua"
                             },
+                            "env": {
+                                "type": "object",
+                                "description": "Environment variables for executable",
+                                "default": {}
+                            },
                             "listenPublicly": {
                                 "type": "boolean",
                                 "description": "Set this to false",
