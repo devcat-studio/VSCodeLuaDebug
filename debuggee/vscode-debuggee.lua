@@ -108,12 +108,12 @@ local function splitChunkName(s)
 	return a
 end
 if DO_TEST then
-	local a = splitChunkName('@.\\vscode-debuggee.lua')  
+	local a = splitChunkName('@.\\vscode-debuggee.lua')
 	assert(#a == 2)
 	assert(a[1] == '.')
 	assert(a[2] == 'vscode-debuggee.lua')
 
-	local a = splitChunkName('@C:\\dev\\VSCodeLuaDebug\\debuggee/lua\\socket.lua')  
+	local a = splitChunkName('@C:\\dev\\VSCodeLuaDebug\\debuggee/lua\\socket.lua')
 	assert(#a == 6)
 	assert(a[1] == 'c:')
 	assert(a[2] == 'dev')
@@ -122,7 +122,7 @@ if DO_TEST then
 	assert(a[5] == 'lua')
 	assert(a[6] == 'socket.lua')
 
-	local a = splitChunkName('@main.lua')  
+	local a = splitChunkName('@main.lua')
 	assert(#a == 1)
 	assert(a[1] == 'main.lua')
 end
@@ -149,7 +149,7 @@ function Path.concat(a, b)
 	-- a를 노멀라이즈
 	local lastChar = string.sub(a, #a, #a)
 	if (lastChar == '/' or lastChar == '\\') then
-		-- pass 
+		-- pass
 	else
 		a = a .. directorySeperator
 	end
@@ -157,7 +157,7 @@ function Path.concat(a, b)
 	-- b를 노멀라이즈
 	if string.match(b, '^%.%\\') then
 		b = string.sub(b, 3)
-	end 
+	end
 
 	return a .. b
 end
@@ -166,7 +166,7 @@ function Path.toAbsolute(base, sub)
 	if Path.isAbsolute(sub) then
 		return sub
 	else
-		return Path.concat(base, sub) 
+		return Path.concat(base, sub)
 	end
 end
 
@@ -220,12 +220,12 @@ local function createHaltBreaker()
 	local function findMostSimilarChunkName(path)
 		local splitedReqPath = splitChunkName(path)
 		local maxMatchCount = 0
-		local foundChunkName = nil 
+		local foundChunkName = nil
 		for chunkName, splitted in pairs(loadedChunkNameMap) do
 			local count = getMatchCount(splitedReqPath, splitted)
 			if (count > maxMatchCount) then
 				maxMatchCount = count
-				foundChunkName = chunkName 
+				foundChunkName = chunkName
 			end
 		end
 		return foundChunkName
@@ -288,7 +288,7 @@ local function createHaltBreaker()
 			step = 4,
 			stepDebugLoop = 6
 		}
-	} 
+	}
 end
 
 local function createPureBreaker()
@@ -297,25 +297,25 @@ local function createPureBreaker()
 	local chunknameToPathCache = {}
 
 	local function chunkNameToPath(chunkname)
-		local cached = chunknameToPathCache[chunkname] 
+		local cached = chunknameToPathCache[chunkname]
 		if cached then
 			return cached
 		end
 
 		local splitedReqPath = splitChunkName(chunkname)
 		local maxMatchCount = 0
-		local foundPath = nil 
+		local foundPath = nil
 		for path, _ in pairs(breakpointsPerPath) do
 			local splitted = splitChunkName(path)
 			local count = getMatchCount(splitedReqPath, splitted)
 			if (count > maxMatchCount) then
 				maxMatchCount = count
-				foundPath = path 
+				foundPath = path
 			end
 		end
 
 		if foundPath then
- 			chunknameToPathCache[chunkname] = foundPath			
+			chunknameToPathCache[chunkname] = foundPath
 		end
 		return foundPath
 	end
@@ -341,7 +341,7 @@ local function createPureBreaker()
 			end
 		end
 
-		entered = false		 
+		entered = false
 	end
 	sethook(hookfunc, 'l')
 
@@ -421,7 +421,7 @@ local function debugLoop()
 			if dumpCommunication then
 				logToDebugConsole('[RECEIVED] ' .. valueToString(msg), 'stderr')
 			end
-			
+
 			local fn = handlers[msg.command]
 			if fn then
 				local rv = fn(msg)
@@ -437,9 +437,9 @@ local function debugLoop()
 		else
 			-- 디버그 중에 디버거가 떨어졌다.
 			-- print펑션을 리다이렉트 한경우에는 원래대로 돌려놓는다
-			if redirectedPrintFunction then			
+			if redirectedPrintFunction then
 				_G.print = redirectedPrintFunction
-			end		
+			end
 			break
 		end
 	end
@@ -452,7 +452,7 @@ local sockArray = {}
 function debuggee.start(jsonLib, config)
 	json = jsonLib
 	assert(jsonLib)
-	
+
 	config = config or {}
 	local connectTimeout = config.connectTimeout or 5.0
 	local controllerHost = config.controllerHost or 'localhost'
@@ -505,7 +505,7 @@ function debuggee.start(jsonLib, config)
 				'output',
 				{
 					category = 'stdout',
-					output = table.concat(t, '\t')
+					output = table.concat(t, '\t') .. '\n' -- Same as default "print" output end new line.
 				})
 		end
 	end
@@ -529,7 +529,7 @@ function debuggee.poll()
 			if dumpCommunication then
 				logToDebugConsole('[POLL-RECEIVED] ' .. valueToString(msg), 'stderr')
 			end
-			
+
 			if msg.command == 'pause' then
 				debuggee.enterDebugLoop(1)
 				return
@@ -552,7 +552,7 @@ end
 local function getCoroutineId(c)
 	-- 'thread: 011DD5B0'
 	--  12345678^
-	local threadIdHex = string.sub(tostring(c), 9) 
+	local threadIdHex = string.sub(tostring(c), 9)
 	return tonumber(threadIdHex, 16)
 end
 
@@ -571,7 +571,7 @@ local function sendSuccess(req, body)
 		request_seq = req.seq,
 		type = "response",
 		body = body
-	})	
+	})
 end
 
 -------------------------------------------------------------------------------
@@ -582,7 +582,7 @@ local function sendFailure(req, msg)
 		request_seq = req.seq,
 		type = "response",
 		message = msg
-	})	
+	})
 end
 
 -------------------------------------------------------------------------------
@@ -591,7 +591,7 @@ sendEvent = function(eventName, body)
 		event = eventName,
 		type = "event",
 		body = body
-	})	
+	})
 end
 
 -------------------------------------------------------------------------------
@@ -708,7 +708,7 @@ end
 function handlers.stackTrace(req)
 	assert(req.arguments.threadId == 0)
 
-	local stackFrames = {} 
+	local stackFrames = {}
 	local firstFrame = (req.arguments.startFrame or 0) + baseDepth
 	local lastFrame = (req.arguments.levels and (req.arguments.levels ~= 0))
 		and (firstFrame + req.arguments.levels - 1)
@@ -726,7 +726,7 @@ function handlers.stackTrace(req)
 		local info = debug_getinfo(i, 'lnS')
 		if (info == nil) then break end
 		--print(json.encode(info))
-		
+
 		local src = info.source
 		if string.sub(src, 1, 1) == '@' then
 			src = string.sub(src, 2) -- 앞의 '@' 떼어내기
@@ -765,14 +765,14 @@ local scopeTypes = {
 }
 function handlers.scopes(req)
 	local depth = req.arguments.frameId
-	
+
 	local scopes = {}
 	local function addScope(name)
 		scopes[#scopes + 1] = {
 			name = name,
 			expensive = false,
 			variablesReference = depth * 1000000 + scopeTypes[name]
-		}		
+		}
 	end
 
 	addScope('Locals')
@@ -799,7 +799,7 @@ local function registerVar(varNameCount, name_, value, noQuote)
 	else
 		varNameCount[name] = 1
 	end
-	
+
 	local item = {
 		name = name,
 		type = ty
@@ -856,7 +856,7 @@ function handlers.variables(req)
 				addVar(name, value)
 			end
 			table.sort(variables, function(a, b) return a.name < b.name end)
-		end 
+		end
 	else
 		-- Expansion.
 		local var = storedVariables[varRef]
