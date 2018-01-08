@@ -961,13 +961,6 @@ function handlers.evaluate(req)
 		sourceCode = 'return (' .. sourceCode .. ')'
 	end
 
-	-- 파싱
-	local fn, err = loadstring(sourceCode, 'X')
-	if fn == nil then
-		sendFailure(req, string.gsub(err, '^%[string %"X%"%]%:%d+%: ', ''))
-		return
-	end
-
 	-- 환경 준비.
 	-- 뭘 요구할지 모르니까 로컬, 업밸류, 글로벌을 죄다 복사해둔다.
 	-- 우선순위는 글로벌-업밸류-로컬 순서니까
@@ -1009,8 +1002,21 @@ function handlers.evaluate(req)
 	}
 	setmetatable(tempG, mt)
 
+	-- 파싱
+	-- loadstring for Lua 5.1
+	-- load for Lua 5.2 and 5.3(supports the private environment's load function)
+	local fn, err = (loadstring or load)(sourceCode, 'X', nil, tempG)
+	if fn == nil then
+		sendFailure(req, string.gsub(err, '^%[string %"X%"%]%:%d+%: ', ''))
+		return
+	end
+
 	-- 실행하고 결과 송신
-	setfenv(fn, tempG)
+	if setfenv ~= nil then
+		-- Only for Lua 5.1
+		setfenv(fn, tempG)
+	end
+
 	local success, aux = pcall(fn)
 	if not success then
 		aux = aux or '' -- Execution of 'error()' returns nil as aux
