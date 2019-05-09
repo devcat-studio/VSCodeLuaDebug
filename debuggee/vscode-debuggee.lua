@@ -212,6 +212,64 @@ if DO_TEST then
 end
 -- path control }}}
 
+local function checkbreakpoint(sourceCode)
+	if sourceCode == true then
+		return true
+	end
+
+	if string.sub(sourceCode, 1, 1) == '!' then
+		sourceCode = string.sub(sourceCode, 2)
+	else
+		sourceCode = 'return (' .. sourceCode .. ')'
+	end
+
+	local fn, _ = loadstring(sourceCode, 'X')
+	if fn == nil then
+		return false
+	end
+
+	local depth = 3
+	local tempG = {}
+	local declared = {}
+	local function set(k, v)
+		tempG[k] = v
+		declared[k] = true
+	end
+
+	for name, value in pairs(_G) do
+		set(name, value)
+	end
+
+	if depth then
+		local info = debug_getinfo(depth, 'f')
+		if info and info.func then
+			for i = 1, 9999 do
+				local name, value = debug.getupvalue(info.func, i)
+				if name == nil then break end
+				set(name, value)
+			end
+		end
+
+		for i = 1, 9999 do
+			local name, value = debug_getlocal(depth, i)
+			if name == nil then break end
+			set(name, value)
+		end
+	end
+	local mt = {
+		__newindex = function() error('assignment not allowed', 2) end,
+		__index = function(_, k) if not declared[k] then error('not declared', 2) end end
+	}
+	setmetatable(tempG, mt)
+
+	setfenv(fn, tempG)
+	local success, aux = pcall(fn)
+	if not success or not aux then
+		return false
+	end
+	return true
+end
+
 local coroutineSet = {}
 setmetatable(coroutineSet, { __mode = 'v' })
 
@@ -369,7 +427,7 @@ local function createPureBreaker()
 				path = string.lower(path)
 			end
 			local bpSet = breakpointsPerPath[path]
-			if bpSet and bpSet[info.currentline] then
+			if bpSet and bpSet[info.currentline] and checkbreakpoint(bpSet[info.currentline])  then
 				_G.__halt__()
 			end
 		end
@@ -379,11 +437,11 @@ local function createPureBreaker()
 	sethook(hookfunc, 'l')
 
 	return {
-		setBreakpoints = function(path, lines)
+		setBreakpoints = function(path, lines, conditions)
 			local t = {}
 			local verifiedLines = {}
-			for _, ln in ipairs(lines) do
-				t[ln] = true
+			for i, ln in ipairs(lines) do
+				t[ln] = conditions[i]
 				verifiedLines[ln] = ln
 			end
 			if path then
@@ -724,13 +782,15 @@ end
 -------------------------------------------------------------------------------
 function handlers.setBreakpoints(req)
 	local bpLines = {}
-	for _, bp in ipairs(req.arguments.breakpoints) do
+	local conditions = {}
+	for i, bp in ipairs(req.arguments.breakpoints) do
 		bpLines[#bpLines + 1] = bp.line
+		conditions[i] = bp.condition or true
 	end
 
 	local verifiedLines = breaker.setBreakpoints(
 		req.arguments.source.path,
-		bpLines)
+		bpLines, conditions)
 
 	local breakpoints = {}
 	for i, ln in ipairs(bpLines) do
